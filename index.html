@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Penalty Shootout ⚽</title>
+<style>
+  :root{
+    --ink:#0d1b2a;
+    --pink:#ff2e88;
+    --gold:#ffd447;
+    --grass:#2f9e44;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#0a1420}
+  body{
+    font-family:"Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:#fff;
+    -webkit-user-select:none;user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  #wrap{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;inset:0;pointer-events:none}
+
+  .topbar{
+    position:absolute;top:0;left:0;right:0;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    gap:8px;padding:12px 14px;
+    font-weight:700;letter-spacing:.5px;
+    text-shadow:0 2px 6px rgba(0,0,0,.6);
+  }
+  .pill{
+    background:rgba(6,18,30,.55);
+    border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(6px);
+    border-radius:999px;
+    padding:7px 14px;
+    font-size:clamp(12px,2.6vw,15px);
+    white-space:nowrap;
+  }
+  .pill b{color:var(--gold)}
+
+  /* scoreboard bolletjes */
+  #shots{display:flex;gap:6px;align-items:center;justify-content:center}
+  .dot{
+    width:14px;height:14px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.55);
+    background:rgba(255,255,255,.08);
+    transition:transform .25s ease, background .25s ease;
+  }
+  .dot.goal{background:var(--gold);border-color:#fff;transform:scale(1.15)}
+  .dot.miss{background:#e03131;border-color:rgba(255,255,255,.7)}
+
+  /* ---------- Melding midden ---------- */
+  #flash{
+    position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);
+    font-size:clamp(38px,11vw,86px);
+    font-weight:900;font-style:italic;letter-spacing:2px;
+    text-transform:uppercase;
+    text-shadow:0 6px 0 rgba(0,0,0,.35),0 0 30px rgba(255,255,255,.35);
+    opacity:0;transition:opacity .18s ease, transform .25s cubic-bezier(.2,1.7,.5,1);
+    white-space:nowrap;
+  }
+  #flash.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #flash.goal{color:var(--gold)}
+  #flash.bad{color:#ff6b6b}
+  #flash.wood{color:#fff}
+
+  /* ---------- Hint onder ---------- */
+  #hint{
+    position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    font-size:clamp(12px,3vw,16px);font-weight:600;
+    background:rgba(6,18,30,.5);border:1px solid rgba(255,255,255,.15);
+    border-radius:999px;padding:8px 18px;
+    text-shadow:0 1px 4px rgba(0,0,0,.6);
+    opacity:.95;transition:opacity .3s;
+    text-align:center;
+  }
+  #hint.hide{opacity:0}
+
+  /* ---------- Overlays ---------- */
+  .screen{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;padding:24px;
+    background:radial-gradient(120% 90% at 50% 40%,rgba(10,25,45,.72),rgba(4,10,18,.94));
+    backdrop-filter:blur(3px);
+    pointer-events:auto;
+    text-align:center;
+  }
+  .screen.hidden{display:none}
+  h1{
+    font-size:clamp(34px,9vw,68px);font-weight:900;font-style:italic;
+    letter-spacing:-1px;line-height:.95;
+    background:linear-gradient(180deg,#fff 30%,var(--gold));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 4px 12px rgba(0,0,0,.6));
+  }
+  h1 span{display:block;font-size:.42em;letter-spacing:6px;color:var(--pink);
+    background:none;-webkit-text-fill-color:var(--pink);font-style:normal}
+  h2{font-size:clamp(24px,6vw,42px);font-weight:900;font-style:italic}
+  .sub{max-width:440px;font-size:clamp(13px,3.4vw,16px);line-height:1.6;opacity:.85}
+  .sub kbd{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+    border-radius:5px;padding:1px 7px;font-family:inherit;font-size:.92em;
+  }
+  .big{font-size:clamp(46px,13vw,90px);font-weight:900;color:var(--gold);line-height:1}
+  .big small{font-size:.35em;color:#fff;opacity:.7}
+  button{
+    pointer-events:auto;cursor:pointer;
+    font-family:inherit;font-weight:900;font-style:italic;letter-spacing:1px;
+    font-size:clamp(17px,4.4vw,22px);text-transform:uppercase;
+    color:#2a0714;
+    background:linear-gradient(180deg,#ffe27a,var(--gold));
+    border:0;border-bottom:5px solid #b98a00;border-radius:14px;
+    padding:15px 38px;
+    box-shadow:0 10px 30px rgba(255,212,71,.28);
+    transition:transform .08s ease, filter .15s;
+  }
+  button:hover{filter:brightness(1.06)}
+  button:active{transform:translateY(3px);border-bottom-width:2px}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:12px;opacity:.7}
+  .legend div{background:rgba(255,255,255,.08);border-radius:8px;padding:6px 12px}
+  #best{font-size:13px;opacity:.65;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud">
+    <div class="topbar">
+      <div class="pill">RONDE <b id="round">1</b>/5</div>
+      <div class="pill" id="shots"></div>
+      <div class="pill">SCORE <b id="score">0</b></div>
+    </div>
+
+    <div id="flash"></div>
+    <div id="hint">Klik &amp; houd vast om te schieten</div>
+
+    <!-- Startscherm -->
+    <div class="screen" id="startScreen">
+      <h1>Penalty<span>shootout</span></h1>
+      <p class="sub">
+        Richt met je muis of vinger op het doel.<br>
+        <b>Houd ingedrukt</b> om kracht te laden, <b>laat los</b> om te schieten.<br>
+        Hard schiet je de keeper voorbij — maar mikken wordt lastiger.
+      </p>
+      <button id="startBtn">Spelen</button>
+      <div class="legend">
+        <div>🖱️ Muis / 👆 Touch</div>
+        <div>⌨️ Pijltjes + Spatie</div>
+        <div>5 penalty's</div>
+      </div>
+      <div id="best"></div>
+    </div>
+
+    <!-- Eindscherm -->
+    <div class="screen hidden" id="endScreen">
+      <h2 id="endTitle">Afgelopen!</h2>
+      <div class="big"><span id="endScore">0</span><small>/5</small></div>
+      <p class="sub" id="endMsg"></p>
+      <button id="againBtn">Nog een keer</button>
+      <div id="best2"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* =======================================================================
+   Wereld-instellingen (meters, echte penalty-afmetingen)
+   ======================================================================= */
+const GOAL_HALF_W = 3.66;   // doel is 7.32m breed
+const GOAL_H      = 2.44;   // doel is 2.44m hoog
+const GOAL_DEPTH  = 2.0;    // netdiepte
+const POST_R      = 0.06;   // paaldikte
+const BALL_R      = 0.11;
+const SPOT_Z      = 11.0;   // strafschopstip
+const CAM_Z       = 18.0;   // camera staat achter de stip
+const CAM_Y       = 1.20;
+const G           = 9.81;
+
+const KEEPER_Z    = 0.55;
+const KEEPER_DELAY= 0.11;   // reactietijd
+const REACH_X     = 0.92;   // handbereik horizontaal
+const REACH_Y     = 0.89;
+const KEEPER_DUR  = 0.72;   // tijd tot volledige strekking
+const SWEET       = 0.62;   // tot hier blijf je zuiver; daarboven wordt het gokken
+
+/* =======================================================================
+   Canvas + projectie
+   ======================================================================= */
+const cv  = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let W = 0, H = 0, F = 0, CX = 0, HORIZON = 0, DPR = 1;
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width  = Math.round(W * DPR);
+  cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  // Brandpuntsafstand: vul de breedte, maar zoom in op smalle/hoge schermen,
+  // zonder dat het doel buiten beeld valt of de bal onder de rand zakt.
+  F = Math.min(
+    Math.max(W * 1.45, H * 1.05),      // standaard / extra zoom bij portret
+    W * 2.10,                          // doel moet binnen het scherm passen
+    Math.max(320, H * 4.0 - 700)       // bal moet zichtbaar blijven
+  );
+  CX = W / 2;
+  HORIZON = H * 0.35;
+  buildCrowd();
+}
+window.addEventListener("resize", resize);
+
+// 3D -> 2D. Geeft ook de schaal terug (pixels per meter op die diepte).
+function proj(x, y, z){
+  const dz = CAM_Z - z;
+  const s  = F / Math.max(dz, 0.35);
+  return { x: CX + x * s, y: HORIZON - (y - CAM_Y) * s, s };
+}
+// scherm -> punt op het doelvlak (z = 0)
+function unproj(px, py){
+  const s = F / CAM_Z;
+  return { x: (px - CX) / s, y: CAM_Y + (HORIZON - py) / s };
+}
+
+/* =======================================================================
+   Geluid (WebAudio, geen bestanden nodig)
+   ======================================================================= */
+let AC = null, noiseBuf = null, muted = false;
+function audio(){
+  if (AC) return AC;
+  try{
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const len = AC.sampleRate * 2;
+    noiseBuf = AC.createBuffer(1, len, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }catch(e){ AC = null; }
+  return AC;
+}
+function env(node, t0, a, d, peak){
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(peak, t0 + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + a + d);
+  node.connect(g); g.connect(AC.destination);
+  return g;
+}
+function noise(t0, dur, freq, q, peak, type){
+  const src = AC.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const f = AC.createBiquadFilter(); f.type = type || "bandpass";
+  f.frequency.setValueAtTime(freq, t0); f.Q.value = q;
+  src.connect(f);
+  env(f, t0, dur * 0.15, dur * 0.85, peak);
+  src.start(t0); src.stop(t0 + dur + 0.05);
+  return f;
+}
+const SFX = {
+  kick(power){
+    if (!audio() || muted) return;
+    const t = AC.currentTime;
+    const o = AC.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(190 + power * 90, t);
+    o.frequency.exponentialRampToValueAtTime(55, t + 0.09);
+    env(o, t, 0.005, 0.12, 0.5); o.start(t); o.stop(t + 0.2);
+    noise(t, 0.06, 2200, 1.2, 0.22);
+  },
+  post(){
+    if (!audio() || muted) return;
+    const t = AC.currentTime;
+    [1180, 1790, 2630].forEach((f, i) => {
+      const o = AC.createOscillator(); o.type = "triangle";
+      o.frequency.setValueAtTime(f, t);
+      env(o, t, 0.003, 0.9 - i * 0.22, 0.22 / (i + 1));
+      o.start(t); o.stop(t + 1.1);
+    });
+  },
+  save(){
+    if (!audio() || muted) return;
+    const t = AC.currentTime;
+    noise(t, 0.16, 380, 0.8, 0.35, "lowpass");
+    const o = AC.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(60, t + 0.14);
+    env(o, t, 0.004, 0.16, 0.3); o.start(t); o.stop(t + 0.3);
+    setTimeout(() => SFX.groan(), 260);
+  },
+  net(){
+    if (!audio() || muted) return;
+    noise(AC.currentTime, 0.22, 5200, 0.7, 0.16, "highpass");
+  },
+  cheer(){
+    if (!audio() || muted) return;
+    const t = AC.currentTime;
+    const src = AC.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const f = AC.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 0.6;
+    f.frequency.setValueAtTime(600, t);
+    f.frequency.linearRampToValueAtTime(1500, t + 0.35);
+    f.frequency.linearRampToValueAtTime(700, t + 1.6);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.32, t + 0.28);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+    src.connect(f); f.connect(g); g.connect(AC.destination);
+    src.start(t); src.stop(t + 2.0);
+  },
+  groan(){
+    if (!audio() || muted) return;
+    const t = AC.currentTime;
+    const src = AC.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const f = AC.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.1;
+    f.frequency.setValueAtTime(760, t);
+    f.frequency.linearRampToValueAtTime(300, t + 0.9);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.18);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+    src.connect(f); f.connect(g); g.connect(AC.destination);
+    src.start(t); src.stop(t + 1.2);
+  },
+  whistle(){
+    if (!audio() || muted) return;
+    const t = AC.currentTime;
+    const o = AC.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(2050, t);
+    const lfo = AC.createOscillator(); lfo.frequency.value = 26;
+    const lg = AC.createGain(); lg.gain.value = 70;
+    lfo.connect(lg); lg.connect(o.frequency);
+    env(o, t, 0.02, 0.3, 0.16);
+    o.start(t); lfo.start(t); o.stop(t + 0.4); lfo.stop(t + 0.4);
+  }
+};
+
+/* =======================================================================
+   Publiek (statisch gegenereerd)
+   ======================================================================= */
+let crowd = [];
+function buildCrowd(){
+  crowd = [];
+  const rows = 16;
+  const top = HORIZON - H * 0.30;
+  for (let r = 0; r < rows; r++){
+    const y = top + (r / rows) * (HORIZON - top);
+    const step = 7 + r * 0.35;
+    for (let x = -step; x < W + step; x += step){
+      crowd.push({
+        x: x + Math.random() * step * 0.6,
+        y: y + Math.random() * 3,
+        r: 1.6 + r * 0.12,
+        c: Math.random() < 0.55 ? "#ff2e88" : (Math.random() < 0.5 ? "#ffd447" : "#e9ecef"),
+        p: Math.random() * 6.28
+      });
+    }
+  }
+}
+
+/* =======================================================================
+   Spelstatus
+   ======================================================================= */
+const MODE = { MENU:"menu", AIM:"aim", POWER:"power", FLY:"fly", RESULT:"result", END:"end" };
+const TOTAL_ROUNDS = 5;
+
+const game = {
+  mode: MODE.MENU,
+  round: 0,
+  score: 0,
+  results: [],
+  power: 0,
+  powerT: 0,
+  aim: { x: 0, y: 1.3 },
+  resultTimer: 0,
+  shake: 0,
+  flashT: 0
+};
+
+const ball = {
+  x:0, y:BALL_R, z:SPOT_Z, vx:0, vy:0, vz:0,
+  curve:0, spin:0, live:false, resolved:false, prevZ:SPOT_Z, trail:[]
+};
+
+const keeper = {
+  t:0, diving:false,
+  fromX:0, fromY:1.05,
+  toX:0, toY:1.05,
+  x:0, y:1.05, dur:0.55
+};
+
+let particles = [];
+
+/* ---------- ronde starten ---------- */
+function resetShot(){
+  ball.x = 0; ball.y = BALL_R; ball.z = SPOT_Z;
+  ball.vx = ball.vy = ball.vz = 0;
+  ball.curve = 0; ball.spin = 0;
+  ball.live = false; ball.resolved = false; ball.prevZ = SPOT_Z; ball.trail.length = 0;
+  keeper.t = 0; keeper.diving = false;
+  keeper.fromX = 0; keeper.fromY = 1.05;
+  keeper.toX = 0; keeper.toY = 1.05;
+  keeper.x = 0; keeper.y = 1.05;
+  game.power = 0; game.powerT = 0;
+  game.aim.x = 0; game.aim.y = 1.3;
+  game.mode = MODE.AIM;
+  setHint("Klik &amp; houd vast om te schieten");
+}
+
+function newGame(){
+  game.round = 0; game.score = 0; game.results = [];
+  particles = [];
+  updateHUD();
+  resetShot();
+  SFX.whistle();
+}
+
+/* =======================================================================
+   Schieten
+   ======================================================================= */
+function shoot(power){
+  power = Math.max(0.12, Math.min(1, power));
+
+  // Hard schieten = korter onderweg (keeper komt te laat), maar duidelijk minder nauwkeurig.
+  const T = 0.92 - 0.50 * power;
+  const jitter = 0.06 + Math.max(0, power - SWEET) * 1.9;
+
+  const tx = game.aim.x + (Math.random() * 2 - 1) * jitter;
+  const ty = Math.max(0.05, game.aim.y + (Math.random() * 2 - 1) * jitter * 0.8);
+
+  // Effect: bal begint meer centraal en krult naar de hoek toe.
+  const curve = (tx / GOAL_HALF_W) * 3.4;
+  ball.curve = curve;
+  ball.spin  = -curve * 1.6;
+
+  ball.vz = -(SPOT_Z) / T;
+  ball.vx = (tx - ball.x - 0.5 * curve * T * T) / T;
+  ball.vy = (ty - ball.y + 0.5 * G * T * T) / T;
+  ball.live = true;
+  ball.resolved = false;
+  ball.prevZ = ball.z;
+
+  // Keeper kiest zijn hoek (soms 'leest' hij de schutter).
+  const readChance = 0.18 + game.round * 0.065;
+  let sx, sy;
+  if (Math.random() < readChance){
+    sx = tx < -0.9 ? -1 : (tx > 0.9 ? 1 : 0);
+    sy = ty > 1.25 ? 1 : 0;
+  } else {
+    const opts = [[-1,0],[-1,1],[1,0],[1,1],[0,0],[0,1]];
+    const pick = opts[(Math.random() * opts.length) | 0];
+    sx = pick[0]; sy = pick[1];
+  }
+  keeper.toX = sx * 3.05;
+  keeper.toY = sx === 0 ? (sy ? 1.65 : 0.95) : (sy ? 1.85 : 0.5);
+  keeper.dur = KEEPER_DUR - game.round * 0.03;
+  keeper.diving = true;
+  keeper.t = 0;
+
+  game.mode = MODE.FLY;
+  setHint("");
+  SFX.kick(power);
+  game.shake = Math.min(9, 3 + power * 7);
+}
+
+/* =======================================================================
+   Natuurkunde + uitslag
+   ======================================================================= */
+function stepPhysics(dt){
+  if (!ball.live) return;
+
+  ball.prevZ = ball.z;
+  ball.vy -= G * dt;
+  ball.vx += ball.curve * dt;
+  ball.x += ball.vx * dt;
+  ball.y += ball.vy * dt;
+  ball.z += ball.vz * dt;
+
+  // stuiteren
+  if (ball.y < BALL_R){
+    ball.y = BALL_R;
+    if (Math.abs(ball.vy) > 0.6){ ball.vy = -ball.vy * 0.52; ball.vx *= 0.82; ball.vz *= 0.82; }
+    else { ball.vy = 0; ball.vx *= 0.94; ball.vz *= 0.94; }
+  }
+
+  ball.trail.push({ x: ball.x, y: ball.y, z: ball.z });
+  if (ball.trail.length > 26) ball.trail.shift();
+
+  // keeper beweegt
+  if (keeper.diving){
+    keeper.t += dt;
+    const p = Math.max(0, Math.min(1, (keeper.t - KEEPER_DELAY) / keeper.dur));
+    const e = p * p * (3 - 2 * p);
+    keeper.x = keeper.fromX + (keeper.toX - keeper.fromX) * e;
+    keeper.y = keeper.fromY + (keeper.toY - keeper.fromY) * e;
+  }
+
+  // doellijn gepasseerd? (lineair terug-interpoleren naar het exacte kruispunt)
+  if (!ball.resolved && ball.prevZ > 0 && ball.z <= 0){
+    const f = ball.prevZ / (ball.prevZ - ball.z);
+    const cx = ball.x - ball.vx * dt * (1 - f);
+    const cy = ball.y - ball.vy * dt * (1 - f);
+    resolveShot(cx, cy);
+  }
+
+  // bal tot stilstand in het net
+  const inFrame = Math.abs(ball.x) < GOAL_HALF_W && ball.y < GOAL_H;
+  if (inFrame && ball.z < -GOAL_DEPTH + 0.2){
+    ball.z = -GOAL_DEPTH + 0.2;
+    ball.vz *= -0.18; ball.vx *= 0.4; ball.vy *= 0.4;
+  }
+  if (ball.z < 0){ ball.vx *= 0.965; ball.vz *= 0.965; }
+  if (ball.z > CAM_Z - 1) ball.live = false;
+}
+
+function resolveShot(x, y){
+  ball.resolved = true;
+  const ax = Math.abs(x);
+  const hitPost = Math.abs(ax - GOAL_HALF_W) < POST_R + BALL_R && y < GOAL_H + POST_R;
+  const hitBar  = Math.abs(y - GOAL_H) < POST_R + BALL_R && ax < GOAL_HALF_W + POST_R;
+
+  if (hitPost || hitBar){
+    SFX.post();
+    if (hitPost){ ball.vx = -ball.vx * 0.7 + (x > 0 ? 2.2 : -2.2); ball.vz = -ball.vz * 0.55; }
+    else { ball.vy = -Math.abs(ball.vy) * 0.5 - 1.5; ball.vz = -ball.vz * 0.5; }
+    ball.curve = 0;
+    finish(false, hitBar ? "Lat!" : "Paal!", "wood");
+    return;
+  }
+
+  const inGoal = ax < GOAL_HALF_W - POST_R && y < GOAL_H - POST_R && y > -0.05;
+  if (!inGoal){
+    SFX.groan();
+    finish(false, y >= GOAL_H ? "Over!" : "Naast!", "bad");
+    return;
+  }
+
+  // redding?
+  const p = Math.max(0, Math.min(1, (getFlightTime() - KEEPER_DELAY) / keeper.dur));
+  const e = p * p * (3 - 2 * p);
+  const kx = keeper.fromX + (keeper.toX - keeper.fromX) * e;
+  const ky = keeper.fromY + (keeper.toY - keeper.fromY) * e;
+
+  if (Math.abs(x - kx) < REACH_X && Math.abs(y - ky) < REACH_Y){
+    SFX.save();
+    const dir = x >= kx ? 1 : -1;
+    ball.vx = dir * (2.5 + Math.random() * 3);
+    ball.vy = 1.5 + Math.random() * 3;
+    ball.vz = 5 + Math.random() * 5;
+    ball.curve = 0;
+    ball.z = 0.02;
+    finish(false, "Gepakt!", "bad");
+    return;
+  }
+
+  SFX.net(); SFX.cheer();
+  burst(x, y);
+  game.shake = 10;
+  finish(true, "Goal!", "goal");
+}
+
+function getFlightTime(){ return keeper.t; }
+
+function finish(scored, text, cls){
+  game.results.push(scored);
+  if (scored) game.score++;
+  game.round++;
+  updateHUD();
+  showFlash(text, cls);
+  game.mode = MODE.RESULT;
+  game.resultTimer = 0;
+}
+
+/* =======================================================================
+   Confetti
+   ======================================================================= */
+function burst(x, y){
+  const cols = ["#ffd447","#ff2e88","#ffffff","#4dabf7","#69db7c"];
+  for (let i = 0; i < 70; i++){
+    const a = Math.random() * Math.PI * 2, sp = 1.5 + Math.random() * 6;
+    particles.push({
+      x, y, z: -0.4 - Math.random() * 1.2,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp + 3, vz: (Math.random() - 0.5) * 3,
+      life: 1.4 + Math.random(), age: 0,
+      c: cols[(Math.random() * cols.length) | 0],
+      s: 0.04 + Math.random() * 0.06
+    });
+  }
+}
+function stepParticles(dt){
+  for (let i = particles.length - 1; i >= 0; i--){
+    const p = particles[i];
+    p.age += dt;
+    p.vy -= 7 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    if (p.y < 0){ p.y = 0; p.vy *= -0.3; p.vx *= 0.7; p.vz *= 0.7; }
+    if (p.age > p.life) particles.splice(i, 1);
+  }
+}
+
+/* =======================================================================
+   Tekenen
+   ======================================================================= */
+function draw(t){
+  ctx.clearRect(0, 0, W, H);
+
+  let sx = 0, sy = 0;
+  if (game.shake > 0.1){
+    sx = (Math.random() - 0.5) * game.shake;
+    sy = (Math.random() - 0.5) * game.shake;
+  }
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  drawSky();
+  drawStands(t);
+  drawPitch();
+  drawLines();
+  drawNetStructure();
+
+  // diepte-sortering: verst eerst
+  const items = [
+    { d: CAM_Z,              f: drawFrame  },
+    { d: CAM_Z - KEEPER_Z,   f: drawKeeper },
+    { d: CAM_Z - ball.z,     f: drawBall   }
+  ].sort((a, b) => b.d - a.d);
+  items.forEach(i => i.f());
+
+  drawParticles();
+  if (game.mode === MODE.AIM || game.mode === MODE.POWER) drawReticle(t);
+  ctx.restore();
+
+  if (game.mode === MODE.POWER) drawPowerBar();
+}
+
+function drawSky(){
+  const g = ctx.createLinearGradient(0, 0, 0, HORIZON + 10);
+  g.addColorStop(0, "#0b1f3a");
+  g.addColorStop(0.55, "#1b3f6b");
+  g.addColorStop(1, "#3d6ea3");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, HORIZON + 12);
+}
+
+function drawStands(t){
+  const top = HORIZON - H * 0.30;
+  ctx.fillStyle = "#0e1c2e";
+  ctx.fillRect(0, top - 6, W, HORIZON - top + 8);
+  for (const c of crowd){
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = c.c;
+    const bob = Math.sin(t * 2.2 + c.p) * 0.9;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y + bob, c.r, 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // reclameborden achter het doel (ingetogen, zodat de keeper leesbaar blijft)
+  const bh = H * 0.030;
+  const by = HORIZON - bh;
+  ctx.fillStyle = "#b31f60";
+  ctx.fillRect(0, by, W, bh);
+  ctx.fillStyle = "rgba(0,0,0,.18)";
+  ctx.fillRect(0, by + bh * 0.62, W, bh * 0.38);
+  ctx.fillStyle = "rgba(255,255,255,.42)";
+  ctx.font = `900 ${bh * 0.55}px Trebuchet MS, sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (let x = W * 0.16; x < W; x += W * 0.34){
+    ctx.fillText("PENALTY  ARENA", x, by + bh * 0.42);
+  }
+}
+
+function drawPitch(){
+  ctx.fillStyle = "#227a35";
+  ctx.fillRect(0, HORIZON - 1, W, H - HORIZON + 1);
+  // maaibanen
+  for (let z = -6; z < CAM_Z - 0.6; z += 2.6){
+    const a = proj(0, 0, z).y;
+    const b = proj(0, 0, Math.min(z + 2.6, CAM_Z - 0.6)).y;
+    ctx.fillStyle = ((Math.round(z / 2.6) % 2) === 0) ? "#2f9e44" : "#268c3c";
+    ctx.fillRect(0, a, W, Math.max(1, b - a));
+  }
+  // vignet
+  const g = ctx.createLinearGradient(0, HORIZON, 0, H);
+  g.addColorStop(0, "rgba(0,0,0,.28)");
+  g.addColorStop(0.35, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,.35)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, HORIZON, W, H - HORIZON);
+}
+
+function poly(pts, close){
+  ctx.beginPath();
+  pts.forEach((p, i) => {
+    const q = proj(p[0], 0, p[1]);
+    i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y);
+  });
+  if (close) ctx.closePath();
+  ctx.stroke();
+}
+
+function drawLines(){
+  ctx.strokeStyle = "rgba(255,255,255,.5)";
+  ctx.lineWidth = Math.max(1.5, F * 0.0016);
+  poly([[-30,0],[30,0]]);                                        // doellijn
+  poly([[-9.16,0],[-9.16,5.5],[9.16,5.5],[9.16,0]]);             // doelgebied
+  poly([[-20.16,0],[-20.16,16.5],[20.16,16.5],[20.16,0]]);       // 16-meter
+  // strafschopstip
+  const s = proj(0, 0, SPOT_Z);
+  ctx.fillStyle = "rgba(255,255,255,.75)";
+  ctx.beginPath(); ctx.ellipse(s.x, s.y, s.s * 0.11, s.s * 0.045, 0, 0, 6.2832); ctx.fill();
+  // boog
+  ctx.beginPath();
+  for (let i = 0; i <= 40; i++){
+    const a = Math.PI * (0.08 + 0.84 * (i / 40));
+    const x = Math.cos(a) * 9.15, z = SPOT_Z + Math.sin(a) * 9.15;
+    if (z > 16.5 && z < CAM_Z - 0.8){
+      const q = proj(x, 0, z);
+      i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y);
+    }
+  }
+  ctx.stroke();
+}
+
+function drawNetStructure(){
+  const back = -GOAL_DEPTH;
+  ctx.save();
+  ctx.lineWidth = Math.max(0.7, F * 0.0007);
+
+  // achtervlak
+  ctx.strokeStyle = "rgba(255,255,255,.34)";
+  const cols = 22, rows = 9;
+  for (let i = 0; i <= cols; i++){
+    const x = -GOAL_HALF_W + (2 * GOAL_HALF_W) * (i / cols);
+    const a = proj(x, 0, back), b = proj(x, GOAL_H, back);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  for (let j = 0; j <= rows; j++){
+    const y = GOAL_H * (j / rows);
+    const a = proj(-GOAL_HALF_W, y, back), b = proj(GOAL_HALF_W, y, back);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+
+  // zijkanten + dak
+  ctx.strokeStyle = "rgba(255,255,255,.22)";
+  for (const sgn of [-1, 1]){
+    for (let j = 0; j <= 5; j++){
+      const y = GOAL_H * (j / 5);
+      const a = proj(sgn * GOAL_HALF_W, y, 0), b = proj(sgn * GOAL_HALF_W, y, back);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    for (let k = 0; k <= 5; k++){
+      const z = back * (k / 5);
+      const a = proj(sgn * GOAL_HALF_W, 0, z), b = proj(sgn * GOAL_HALF_W, GOAL_H, z);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+  }
+  for (let k = 0; k <= 5; k++){
+    const z = back * (k / 5);
+    const a = proj(-GOAL_HALF_W, GOAL_H, z), b = proj(GOAL_HALF_W, GOAL_H, z);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  for (let i = 0; i <= 12; i++){
+    const x = -GOAL_HALF_W + (2 * GOAL_HALF_W) * (i / 12);
+    const a = proj(x, GOAL_H, 0), b = proj(x, GOAL_H, back);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawFrame(){
+  const s = proj(0, 0, 0).s;
+  const w = Math.max(3, POST_R * 2 * s);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineCap = "round";
+  ctx.lineWidth = w;
+  ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+  for (const sgn of [-1, 1]){
+    const a = proj(sgn * GOAL_HALF_W, 0, 0), b = proj(sgn * GOAL_HALF_W, GOAL_H, 0);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  const a = proj(-GOAL_HALF_W, GOAL_H, 0), b = proj(GOAL_HALF_W, GOAL_H, 0);
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+}
+
+function drawKeeper(){
+  const s = proj(0, 0, KEEPER_Z).s;
+  const kx = keeper.x, ky = keeper.y;
+  const mag = Math.min(1, Math.abs(keeper.toX) / 3.05);
+  const p = keeper.diving ? Math.max(0, Math.min(1, (keeper.t - KEEPER_DELAY) / keeper.dur)) : 0;
+  const dir = Math.sign(keeper.toX) || 0;
+  const lean = dir * mag * p * 1.15;
+
+  const airborne = mag * p;
+  const hipX = kx * 0.42;
+  const hipY = 0.88 + (ky - 1.05) * 0.42 + airborne * 0.18;
+
+  const shX = hipX + Math.sin(lean) * 0.52;
+  const shY = hipY + Math.cos(lean) * 0.52;
+
+  const P = (x, y) => proj(x, y, KEEPER_Z);
+
+  // schaduw: kleiner en vager naarmate hij verder van de grond is
+  const sh = P(hipX, 0);
+  ctx.fillStyle = `rgba(0,0,0,${0.30 - airborne * 0.16})`;
+  ctx.beginPath();
+  ctx.ellipse(sh.x, sh.y, s * (0.42 - airborne * 0.14), s * (0.12 - airborne * 0.04), 0, 0, 6.2832);
+  ctx.fill();
+
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+  // benen (slepen achter hem aan tijdens de duik)
+  const footY = airborne * 0.42;
+  ctx.strokeStyle = "#12233a"; ctx.lineWidth = s * 0.16;
+  let li = 0;
+  for (const o of [-0.17, 0.17]){
+    li++;
+    const trail = dir * airborne * (0.45 + li * 0.16);
+    const f = P(hipX * 0.35 + o - trail, footY + li * airborne * 0.10);
+    const h = P(hipX, hipY);
+    ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(f.x, f.y); ctx.stroke();
+  }
+
+  // romp (shirt)
+  const hp = P(hipX, hipY), sp = P(shX, shY);
+  const grad = ctx.createLinearGradient(sp.x, sp.y, hp.x, hp.y);
+  grad.addColorStop(0, "#b2f2bb"); grad.addColorStop(1, "#2f9e44");
+  ctx.strokeStyle = grad; ctx.lineWidth = s * 0.34;
+  ctx.beginPath(); ctx.moveTo(hp.x, hp.y); ctx.lineTo(sp.x, sp.y); ctx.stroke();
+
+  // armen naar de handen
+  ctx.strokeStyle = "#8ce99a"; ctx.lineWidth = s * 0.13;
+  const handA = P(kx - 0.20, ky + 0.06), handB = P(kx + 0.20, ky - 0.06);
+  ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(handA.x, handA.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(handB.x, handB.y); ctx.stroke();
+
+  // handschoenen
+  ctx.fillStyle = "#ffd447";
+  for (const h of [handA, handB]){
+    ctx.beginPath(); ctx.arc(h.x, h.y, s * 0.115, 0, 6.2832); ctx.fill();
+  }
+
+  // hoofd
+  const hd = P(shX + Math.sin(lean) * 0.22, shY + Math.cos(lean) * 0.22);
+  ctx.fillStyle = "#f1c48a";
+  ctx.beginPath(); ctx.arc(hd.x, hd.y, s * 0.135, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = "#5b3a1e";
+  ctx.beginPath(); ctx.arc(hd.x, hd.y - s * 0.05, s * 0.135, Math.PI, 0); ctx.fill();
+}
+
+function drawBall(){
+  const p = proj(ball.x, ball.y, ball.z);
+  const r = Math.max(2, BALL_R * p.s);
+  if (p.s <= 0 || ball.z > CAM_Z - 0.5) return;
+
+  // schaduw
+  if (ball.z < CAM_Z - 1){
+    const g = proj(ball.x, 0, ball.z);
+    const h = Math.max(0, ball.y - BALL_R);
+    const al = Math.max(0.05, 0.34 - h * 0.06);
+    ctx.fillStyle = `rgba(0,0,0,${al})`;
+    ctx.beginPath();
+    ctx.ellipse(g.x, g.y, r * (1 + h * 0.12), r * 0.36, 0, 0, 6.2832);
+    ctx.fill();
+  }
+
+  // spoor
+  if (ball.trail.length > 2){
+    for (let i = 0; i < ball.trail.length; i++){
+      const t = ball.trail[i], q = proj(t.x, t.y, t.z);
+      const a = (i / ball.trail.length) * 0.22;
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, Math.max(1, BALL_R * q.s * (0.35 + 0.6 * i / ball.trail.length)), 0, 6.2832);
+      ctx.fill();
+    }
+  }
+
+  // bal
+  const g = ctx.createRadialGradient(p.x - r * 0.35, p.y - r * 0.4, r * 0.15, p.x, p.y, r * 1.05);
+  g.addColorStop(0, "#ffffff"); g.addColorStop(0.72, "#f1f3f5"); g.addColorStop(1, "#b9c0c7");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill();
+
+  // panelen
+  ctx.save();
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.clip();
+  ctx.fillStyle = "#1b2733";
+  ctx.translate(p.x, p.y); ctx.rotate(ball.rot || 0);
+  const pent = (cx, cy, rr, rot) => {
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++){
+      const a = rot + i * 1.2566;
+      const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath(); ctx.fill();
+  };
+  pent(0, 0, r * 0.34, -1.57);
+  for (let i = 0; i < 5; i++){
+    const a = -1.57 + i * 1.2566 + 0.628;
+    pent(Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78, r * 0.26, a);
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = Math.max(1, r * 0.06);
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.stroke();
+}
+
+function drawParticles(){
+  for (const p of particles){
+    const q = proj(p.x, p.y, p.z);
+    if (q.s <= 0) continue;
+    ctx.globalAlpha = Math.max(0, 1 - p.age / p.life);
+    ctx.fillStyle = p.c;
+    const s = Math.max(1.5, p.s * q.s);
+    ctx.fillRect(q.x - s / 2, q.y - s / 2, s, s * 0.6);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawReticle(t){
+  const p = proj(game.aim.x, game.aim.y, 0);
+  const r = Math.max(12, F * 0.022) * (game.mode === MODE.POWER ? 1 + game.power * 0.35 : 1);
+  const pulse = 0.6 + 0.4 * Math.sin(t * 6);
+  const col = game.mode === MODE.POWER
+    ? `rgba(255,${Math.round(210 - game.power * 150)},71,${pulse})`
+    : `rgba(255,255,255,${0.55 + 0.25 * pulse})`;
+  const lw = Math.max(2, F * 0.0022);
+  const cross = () => {
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x - r * 1.5, p.y); ctx.lineTo(p.x - r * 0.45, p.y);
+    ctx.moveTo(p.x + r * 0.45, p.y); ctx.lineTo(p.x + r * 1.5, p.y);
+    ctx.moveTo(p.x, p.y - r * 1.5); ctx.lineTo(p.x, p.y - r * 0.45);
+    ctx.moveTo(p.x, p.y + r * 0.45); ctx.lineTo(p.x, p.y + r * 1.5);
+    ctx.stroke();
+  };
+  // donkere rand eronder, zodat het kruis leesbaar blijft tegen het publiek
+  ctx.strokeStyle = "rgba(0,0,0,.45)";
+  ctx.lineWidth = lw * 2.6;
+  cross();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = lw;
+  cross();
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(2, r * 0.11), 0, 6.2832); ctx.fill();
+}
+
+function drawPowerBar(){
+  const bw = Math.min(W * 0.62, 420), bh = Math.max(14, H * 0.026);
+  const bx = (W - bw) / 2, by = H - bh - Math.max(58, H * 0.11);
+
+  ctx.fillStyle = "rgba(4,12,22,.65)";
+  roundRect(bx - 4, by - 4, bw + 8, bh + 8, bh * 0.7); ctx.fill();
+
+  const g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+  g.addColorStop(0, "#69db7c"); g.addColorStop(0.55, "#ffd447"); g.addColorStop(0.8, "#ff922b"); g.addColorStop(1, "#e03131");
+  ctx.fillStyle = g;
+  roundRect(bx, by, bw * game.power, bh, bh * 0.5); ctx.fill();
+
+  // grens: hierboven wordt je schot onzuiver
+  ctx.strokeStyle = "rgba(255,255,255,.55)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(bx + bw * SWEET, by - 4); ctx.lineTo(bx + bw * SWEET, by + bh + 4);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = "rgba(255,255,255,.35)";
+  ctx.lineWidth = 2;
+  roundRect(bx, by, bw, bh, bh * 0.5); ctx.stroke();
+
+  ctx.fillStyle = "rgba(255,255,255,.9)";
+  ctx.font = `900 ${bh * 0.85}px Trebuchet MS, sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+  ctx.fillText("KRACHT", W / 2, by - bh * 0.55);
+}
+
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* =======================================================================
+   HUD
+   ======================================================================= */
+const el = id => document.getElementById(id);
+const flashEl = el("flash"), hintEl = el("hint");
+
+function updateHUD(){
+  el("round").textContent = Math.min(game.round + 1, TOTAL_ROUNDS);
+  el("score").textContent = game.score;
+  const box = el("shots");
+  box.innerHTML = "";
+  for (let i = 0; i < TOTAL_ROUNDS; i++){
+    const d = document.createElement("div");
+    d.className = "dot" + (i < game.results.length ? (game.results[i] ? " goal" : " miss") : "");
+    box.appendChild(d);
+  }
+}
+function showFlash(text, cls){
+  flashEl.textContent = text;
+  flashEl.className = "show " + cls;
+  game.flashT = 0;
+}
+function hideFlash(){ flashEl.className = ""; }
+function setHint(html){
+  hintEl.innerHTML = html;
+  hintEl.classList.toggle("hide", !html);
+}
+
+/* highscore */
+function getBest(){
+  try { return parseInt(localStorage.getItem("penaltyBest") || "0", 10) || 0; } catch(e){ return 0; }
+}
+function setBest(v){ try { localStorage.setItem("penaltyBest", String(v)); } catch(e){} }
+function paintBest(){
+  const b = getBest();
+  const txt = b > 0 ? `🏆 RECORD: ${b}/5` : "";
+  el("best").textContent = txt;
+  el("best2").textContent = txt;
+}
+
+/* =======================================================================
+   Invoer
+   ======================================================================= */
+function pointerAim(clientX, clientY){
+  const rect = cv.getBoundingClientRect();
+  const u = unproj(clientX - rect.left, clientY - rect.top);
+  game.aim.x = Math.max(-5.2, Math.min(5.2, u.x));
+  game.aim.y = Math.max(0.05, Math.min(4.2, u.y));
+}
+
+function beginPower(){
+  if (game.mode !== MODE.AIM) return;
+  audio();
+  game.mode = MODE.POWER;
+  game.powerT = 0; game.power = 0;
+  setHint("Laat los!");
+}
+function endPower(){
+  if (game.mode !== MODE.POWER) return;
+  shoot(game.power);
+}
+
+cv.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  pointerAim(e.clientX, e.clientY);
+  beginPower();
+});
+cv.addEventListener("pointermove", e => {
+  if (game.mode === MODE.AIM || game.mode === MODE.POWER) pointerAim(e.clientX, e.clientY);
+});
+window.addEventListener("pointerup", () => endPower());
+window.addEventListener("pointercancel", () => endPower());
+
+window.addEventListener("keydown", e => {
+  const k = e.key;
+  if (k === " " || k === "Spacebar"){ e.preventDefault(); beginPower(); return; }
+  const step = 0.35;
+  if (game.mode === MODE.AIM || game.mode === MODE.POWER){
+    if (k === "ArrowLeft")  game.aim.x = Math.max(-5.2, game.aim.x - step);
+    if (k === "ArrowRight") game.aim.x = Math.min( 5.2, game.aim.x + step);
+    if (k === "ArrowUp")    game.aim.y = Math.min( 4.2, game.aim.y + step * 0.7);
+    if (k === "ArrowDown")  game.aim.y = Math.max( 0.05, game.aim.y - step * 0.7);
+  }
+});
+window.addEventListener("keyup", e => {
+  if (e.key === " " || e.key === "Spacebar"){ e.preventDefault(); endPower(); }
+});
+
+el("startBtn").addEventListener("click", () => {
+  audio();
+  el("startScreen").classList.add("hidden");
+  newGame();
+});
+el("againBtn").addEventListener("click", () => {
+  el("endScreen").classList.add("hidden");
+  newGame();
+});
+
+/* =======================================================================
+   Hoofdlus
+   ======================================================================= */
+let last = performance.now();
+function loop(now){
+  let dt = (now - last) / 1000;
+  last = now;
+  dt = Math.min(dt, 0.05);
+  const t = now / 1000;
+
+  if (game.mode === MODE.POWER){
+    game.powerT += dt;
+    // pendelende krachtmeter
+    game.power = 0.5 - 0.5 * Math.cos(game.powerT * 4.4);
+  }
+
+  if (game.mode === MODE.FLY){
+    // sub-stappen voor nauwkeurige doellijn-detectie
+    const steps = 4;
+    for (let i = 0; i < steps; i++) stepPhysics(dt / steps);
+    ball.rot = (ball.rot || 0) + (ball.spin * 0.9 + Math.abs(ball.vz) * 0.35) * dt;
+  }
+
+  if (game.mode === MODE.RESULT){
+    const steps = 4;
+    for (let i = 0; i < steps; i++) stepPhysics(dt / steps);
+    ball.rot = (ball.rot || 0) + (ball.spin * 0.5 + Math.abs(ball.vz) * 0.2) * dt;
+    game.resultTimer += dt;
+    if (game.resultTimer > 0.95) hideFlash();
+    if (game.resultTimer > 1.6){
+      if (game.round >= TOTAL_ROUNDS) endGame();
+      else resetShot();
+    }
+  }
+
+  stepParticles(dt);
+  game.shake *= Math.pow(0.0009, dt);
+
+  draw(t);
+  requestAnimationFrame(loop);
+}
+
+function endGame(){
+  game.mode = MODE.END;
+  const s = game.score;
+  const titles = ["Auw…","Volgende keer beter","Netjes hoor","Sterk gedaan!","Bijna perfect!","WERELDKLASSE!"];
+  const msgs = [
+    "Nul uit vijf. De keeper stuurt je een bedankkaartje.",
+    "Eén raak. Blijf oefenen op de training.",
+    "Twee treffers — je haalt de bank.",
+    "Drie van de vijf. Een prima penaltynemer.",
+    "Vier raak! De bondscoach heeft je gezien.",
+    "Vijf uit vijf. Jij neemt hem in de finale. 🏆"
+  ];
+  el("endTitle").textContent = titles[s];
+  el("endScore").textContent = s;
+  el("endMsg").textContent = msgs[s];
+  if (s > getBest()) setBest(s);
+  paintBest();
+  el("endScreen").classList.remove("hidden");
+  setHint("");
+  hideFlash();
+  if (s >= 4) SFX.cheer();
+  SFX.whistle();
+}
+
+resize();
+paintBest();
+updateHUD();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
