@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0b1020"/>
-  <rect x="196" y="96" width="120" height="60" rx="14" fill="#f5b73d"/>
-  <rect x="176" y="150" width="160" height="266" rx="34" fill="#f5b73d"/>
-  <rect x="196" y="230" width="120" height="110" rx="12" fill="#0b1020"/>
-  <text x="256" y="305" font-family="Arial,Helvetica,sans-serif" font-size="74" font-weight="bold"
-        fill="#f5b73d" text-anchor="middle">PL</text>
+  <rect width="512" height="512" rx="112" fill="#0a9255"/>
+  <path d="M256 104c-59 0-107 47-107 105 0 74 87 148 103 161a6 6 0 0 0 8 0c16-13 103-87 103-161 0-58-48-105-107-105z" fill="#fdd22a"/>
+  <rect x="236" y="164" width="40" height="34" rx="8" fill="#0a9255"/>
+  <rect x="220" y="192" width="72" height="112" rx="20" fill="#0a9255"/>
+  <rect x="234" y="248" width="44" height="42" rx="6" fill="#fdd22a"/>
+  <circle cx="256" cy="418" r="30" fill="#ffffff"/>
 </svg>

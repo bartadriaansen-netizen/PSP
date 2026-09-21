@@ -248,7 +248,7 @@
     const cm = marzaKoszyk + KONFIG.dostawaCena * 0.42 - kosztDostawy;
 
     $('#viewBiz').innerHTML = `
-      <div class="viewhead"><h2>TrunkPL dla inwestorów</h2></div>
+      <div class="viewhead"><h2>AlkhoBold dla inwestorów</h2></div>
       <p class="muted small">Model: quick-commerce alkoholowy. Ceny = cena marketowa +${KONFIG.marza * 100}% marży.
       Liczby poniżej to założenia demonstracyjne dla pilotażu w Warszawie.</p>
 
@@ -340,7 +340,7 @@
         </div>
       </div>
       <p class="muted" style="font-size:13.5px">${p.opis}</p>
-      <p class="small muted">Cena w markecie ok. ${zl(p.cenaSklep)} – w TrunkPL płacisz za dostawę do drzwi w 45 minut.</p>
+      <p class="small muted">Cena w markecie ok. ${zl(p.cenaSklep)} – w AlkhoBold płacisz za dostawę do drzwi w 45 minut.</p>
       ${ile ? `<div class="line" style="margin-top:12px">
           <div class="line__info"><div class="line__name">W koszyku</div>
           <div class="line__sub">${ile} szt. · ${zl((p.cena + p.kaucja) * ile)}</div></div>
@@ -397,7 +397,7 @@
       return;
     }
     if (t.closest('#cartBar')) return idz('cart');
-    if (t.closest('#btnInfo')) return toast('TrunkPL · wersja demo dla inwestorów');
+    if (t.closest('#btnInfo')) return toast('AlkhoBold · alcohol taxi · wersja demo');
     if (t.closest('#btnAddr')) return toast('Dostawa: Warszawa, Śródmieście i okolice');
   });
 
@@ -417,7 +417,7 @@
 
     const { poz, dostawa, razem } = podsumowanie();
     state.zamowienie = {
-      nr: 'TPL-' + Math.floor(100000 + Math.random() * 899999),
+      nr: 'ALK-' + Math.floor(100000 + Math.random() * 899999),
       krok: 0,
       slot: state.slot,
       adres: d.adres,

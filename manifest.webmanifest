@@ -1,13 +1,13 @@
 {
-  "name": "TrunkPL – alkohol z dostawą",
-  "short_name": "TrunkPL",
-  "description": "Piwo 0,5 l i wódka z dostawą do 45 minut.",
+  "name": "AlkhoBold – alcohol taxi",
+  "short_name": "AlkhoBold",
+  "description": "Alcohol taxi – piwo 0,5 l i wódka z dostawą do 45 minut. Bezpiecznie do domu.",
   "lang": "pl",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b1020",
-  "theme_color": "#0b1020",
+  "background_color": "#0a9255",
+  "theme_color": "#0a9255",
   "icons": [
     { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]

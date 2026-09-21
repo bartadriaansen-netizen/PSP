@@ -1,4 +1,6 @@
-# TrunkPL – demo-app alcoholbezorging (PL)
+# AlkhoBold – alcohol taxi (demo-app, PL)
+
+![AlkhoBold](assets/logo.png)
 
 Mobiele webapp (in het Pools) waarmee klanten Pools bier van 0,5 l en wodka bestellen.
 Gebouwd als **werkende demo voor investeerders**: geen build, geen dependencies, geen backend.
@@ -52,6 +54,13 @@ Stock Prestige).
 - **Verkoopvenster 6:00–22:00** – buiten die uren toont de app een melding.
 - **Leeftijdscontrole twee keer**: in de app en nogmaals door de koerier bij de deur.
 - Bezorgkosten 14,99 zł, gratis vanaf 149 zł, minimumbestelling 50 zł.
+
+## Huisstijl
+
+Kleuren komen uit het logo: groen `#0a9255`, geel `#fdd22a`, wit. Het logo staat in
+`assets/logo.png` (volledige lockup) en `assets/logo-mark.png` (alleen wordmark, voor de
+header); beide hebben de groene achtergrond van het merk, zodat ze naadloos in de groene
+balken vallen. De app heeft een licht en een donker thema — beide volgen de huisstijl.
 
 ## Aanpassen
 
