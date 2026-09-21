@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0b1020">
+<title>TrunkPL – alkohol z dostawą</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍺</text></svg>">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="TrunkPL – piwo 0,5 l i wódka z dostawą w 45 minut. Demo aplikacji.">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- ============ BRAMKA WIEKU ============ -->
+<div id="agegate" class="agegate">
+  <div class="agegate__inner">
+    <div class="logo logo--big">Trunk<span>PL</span></div>
+    <p class="agegate__claim">Zimne piwo i wódka pod Twoje drzwi w 45 minut.</p>
+    <div class="agegate__box">
+      <div class="agegate__icon">18+</div>
+      <h2>Czy masz ukończone 18 lat?</h2>
+      <p class="muted small">Sprzedaż alkoholu osobom poniżej 18. roku życia jest zabroniona.
+      Kurier weryfikuje dokument tożsamości przy odbiorze.</p>
+      <button class="btn btn--primary btn--lg" id="ageYes">Tak, mam 18 lat</button>
+      <button class="btn btn--ghost" id="ageNo">Nie</button>
+    </div>
+    <p class="agegate__legal small muted">Alkohol szkodzi zdrowiu. Nie sprzedajemy osobom nietrzeźwym.</p>
+  </div>
+</div>
+
+<div id="ageblock" class="agegate agegate--block hidden">
+  <div class="agegate__inner">
+    <div class="agegate__icon agegate__icon--stop">⛔</div>
+    <h2>Przykro nam</h2>
+    <p class="muted">Z aplikacji mogą korzystać wyłącznie osoby pełnoletnie.</p>
+  </div>
+</div>
+
+<!-- ============ APLIKACJA ============ -->
+<div id="app" class="app hidden">
+
+  <header class="topbar">
+    <div class="topbar__row">
+      <div class="logo">Trunk<span>PL</span></div>
+      <button class="iconbtn" id="btnInfo" aria-label="Informacje">ⓘ</button>
+    </div>
+    <button class="addrbar" id="btnAddr">
+      <span class="addrbar__pin">📍</span>
+      <span class="addrbar__txt"><strong id="addrCity">Warszawa</strong><span id="addrStreet">Marszałkowska 12/4</span></span>
+      <span class="addrbar__eta" id="etaBadge">45 min</span>
+    </button>
+  </header>
+
+  <!-- widok: sklep -->
+  <main class="view" id="viewShop">
+    <div class="hero">
+      <div class="hero__txt">
+        <h1>Dowozimy w 45 minut</h1>
+        <p>Piwo 0,5 l prosto z chłodni. Wódka w komplecie.</p>
+      </div>
+      <div class="hero__badge">🧊</div>
+    </div>
+
+    <div class="searchwrap">
+      <input type="search" id="search" class="search" placeholder="Szukaj: Tyskie, Żubrówka…" autocomplete="off">
+    </div>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab is-active" data-kat="wszystko">Wszystko</button>
+      <button class="tab" data-kat="piwo">Piwo 0,5 l</button>
+      <button class="tab" data-kat="wodka">Wódka</button>
+    </nav>
+
+    <div id="hoursNote" class="note hidden"></div>
+
+    <section class="grid" id="grid"></section>
+    <p class="disclaimer small muted">Ceny zawierają VAT i akcyzę. Do piw doliczamy kaucję 1,00 zł
+    za butelkę zwrotną (system kaucyjny) – oddasz butelki kurierowi, zwrócimy kaucję.</p>
+  </main>
+
+  <!-- widok: koszyk -->
+  <main class="view hidden" id="viewCart">
+    <div class="viewhead"><button class="back" data-go="shop">←</button><h2>Koszyk</h2></div>
+    <div id="cartList"></div>
+    <div id="cartEmpty" class="empty hidden">
+      <div class="empty__ico">🛒</div>
+      <p>Twój koszyk jest pusty.</p>
+      <button class="btn btn--primary" data-go="shop">Przejdź do sklepu</button>
+    </div>
+    <div id="cartSummary"></div>
+  </main>
+
+  <!-- widok: zamówienie -->
+  <main class="view hidden" id="viewCheckout">
+    <div class="viewhead"><button class="back" data-go="cart">←</button><h2>Dostawa i płatność</h2></div>
+    <form id="formCheckout" class="form" novalidate>
+      <label class="field">
+        <span>Imię i nazwisko</span>
+        <input name="imie" required placeholder="Anna Kowalska">
+      </label>
+      <div class="field-row">
+        <label class="field"><span>Telefon</span><input name="tel" required inputmode="tel" placeholder="600 100 200"></label>
+        <label class="field"><span>Kod pocztowy</span><input name="kod" required placeholder="00-001"></label>
+      </div>
+      <label class="field">
+        <span>Adres dostawy</span>
+        <input name="adres" required placeholder="Marszałkowska 12/4, Warszawa">
+      </label>
+      <label class="field">
+        <span>Uwagi dla kuriera</span>
+        <input name="uwagi" placeholder="Domofon 24, 3. piętro">
+      </label>
+
+      <h3 class="formhead">Termin dostawy</h3>
+      <div class="chips" id="slots"></div>
+
+      <h3 class="formhead">Płatność</h3>
+      <div class="pay" id="pay">
+        <label class="payopt"><input type="radio" name="platnosc" value="BLIK" checked><span class="payopt__b"><b>BLIK</b><small>Kod z aplikacji banku</small></span></label>
+        <label class="payopt"><input type="radio" name="platnosc" value="Karta"><span class="payopt__b"><b>Karta</b><small>Visa / Mastercard</small></span></label>
+        <label class="payopt"><input type="radio" name="platnosc" value="Przelewy24"><span class="payopt__b"><b>Przelewy24</b><small>Szybki przelew</small></span></label>
+        <label class="payopt"><input type="radio" name="platnosc" value="Gotówka"><span class="payopt__b"><b>Gotówka</b><small>Płatność u kuriera</small></span></label>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" name="oswiadczenie" required>
+        <span>Oświadczam, że mam ukończone 18 lat i okażę dokument tożsamości kurierowi.</span>
+      </label>
+
+      <div id="checkoutTotals"></div>
+      <p id="formError" class="error hidden"></p>
+      <button class="btn btn--primary btn--lg" type="submit" id="btnPay">Zamawiam i płacę</button>
+      <p class="small muted center">Płatność testowa – to wersja demonstracyjna.</p>
+    </form>
+  </main>
+
+  <!-- widok: status -->
+  <main class="view hidden" id="viewOrder">
+    <div class="ordertop">
+      <div class="ordertop__ico">✅</div>
+      <h2>Zamówienie przyjęte</h2>
+      <p class="muted">Numer <strong id="orderNo">—</strong></p>
+    </div>
+    <div class="track" id="track"></div>
+    <div class="courier">
+      <div class="courier__avatar">🛵</div>
+      <div>
+        <strong>Marek K.</strong>
+        <div class="small muted">Kurier TrunkPL · ⭐ 4,9</div>
+      </div>
+      <button class="iconbtn" aria-label="Zadzwoń">📞</button>
+    </div>
+    <div id="orderRecap"></div>
+    <button class="btn btn--ghost" data-go="shop">Wróć do sklepu</button>
+  </main>
+
+  <!-- widok: dla inwestorów -->
+  <main class="view hidden" id="viewBiz"></main>
+
+  <!-- pasek dolny -->
+  <nav class="bottom" id="bottom">
+    <button class="bottom__i is-active" data-go="shop"><span>🍺</span>Sklep</button>
+    <button class="bottom__i" data-go="cart"><span>🛒</span>Koszyk<em id="cartBadge" class="badge hidden">0</em></button>
+    <button class="bottom__i" data-go="order"><span>📦</span>Zamówienie</button>
+    <button class="bottom__i" data-go="biz"><span>📈</span>Biznes</button>
+  </nav>
+
+  <!-- przycisk koszyka -->
+  <button class="cartbar hidden" id="cartBar">
+    <span class="cartbar__n" id="cartBarN">0</span>
+    <span>Przejdź do koszyka</span>
+    <span class="cartbar__sum" id="cartBarSum">0,00 zł</span>
+  </button>
+
+  <div class="toast hidden" id="toast"></div>
+</div>
+
+<!-- arkusz produktu -->
+<div class="sheet hidden" id="sheet">
+  <div class="sheet__bg" data-close="1"></div>
+  <div class="sheet__card" id="sheetCard"></div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "TrunkPL – alkohol z dostawą",
+  "short_name": "TrunkPL",
+  "description": "Piwo 0,5 l i wódka z dostawą do 45 minut.",
+  "lang": "pl",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
